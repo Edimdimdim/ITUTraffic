@@ -9,7 +9,7 @@
 #define BIN2 5
 #define kp 0.025f
 #define kd 0.001f
-#define k 0.3 //expodential pid constant values (0,1]  1 means regular pid
+#define k 0.1f//expodential pid constant values (0,1]  1 means regular pid
 #define emitter_pin 8
 #define encoderA 2
 #define encoderB 3
@@ -25,7 +25,9 @@ QTRSensors qtr;
 bool change=0;//if line changed return 1
 const uint8_t SensorCount = 6;
 uint16_t sensorValues[SensorCount];
-
+char park_side;//A is left B is right
+int intended_slot;//i.e. 1,2,3
+int current_slot=1;//şuandaki dönüş
 void setup()
 {
   // configure the sensors
@@ -75,7 +77,6 @@ void setup()
 void loop()
 {
   read_sens();
-
   motor_drive();  
 }
 void printt()
@@ -110,14 +111,17 @@ void read_sens()
    bool left_path=check_path_left();
    if(left_path&&right_path)
    {
+
       if(sensorValues[2]<200||sensorValues[3]<200)
       {
           change=1;
           line_type='w';
+          
           //iletişim kur imagea data ver kullanım -> line 20
       }
       else
       {
+        
         // Şuraya park mark eklencek
         switch(image)
         {
@@ -127,24 +131,42 @@ void read_sens()
           case 'r':
           turn_right();
           break;
-          default:
-          ;
+          case 'a':
+          park('a');
+          break;
+          case 'b':
+          park('b');
+          break;
+          case 'c':
+          park('c');
+          break;
+          case 'd':
+          park('d');
+          break;
+          case 'e':
+          park('e');          
+          break;
+          case 'f':
+          park('f');
+          break;        
+          default:;
         }
  
       }
    }
    else if(left_path||right_path)
    {
+    
     if(left_path)
       {
-    
-       //   if(image=='l') bunları ekle en son ********
-          turn_left();
+          
+          if(image=='l')
+         turn_left();
       }
       else 
       {
-       
-        //  if(image=='r') bunları ekle en son ********
+         
+         if(image=='r')
           turn_right();
       }
       
@@ -160,14 +182,14 @@ void read_sens()
 }
 bool check_path_right()//right 1 else 0
 {
-if((sensorValues[0]>=200&&sensorValues[1]>=200&&sensorValues[2]>=200))
+if((sensorValues[0]>=200&&sensorValues[1]>=200&&sensorValues[2]>=200)||(sensorValues[0]>=200&&sensorValues[1]))
 return 1;
 else
 return 0;
 }
 bool check_path_left()//left 1 else 0
 {
-if((sensorValues[5]>=200&&sensorValues[4]>=200&&sensorValues[3]>=200))
+if((sensorValues[5]>=200&&sensorValues[4]>=200&&sensorValues[3]>=200)||(sensorValues[5]>=200&&sensorValues[4]))
 return 1;
 else
 return 0;
@@ -176,8 +198,8 @@ void motor_drive()
 {
 if(change==1)
 {
-  motorSpeedA=0;
-  motorSpeedB=0;
+  motorSpeedA=BASE;
+  motorSpeedB=BASE;
   change=0;
 }
   
@@ -222,14 +244,14 @@ void turn_right()
   digitalWrite(BIN1, HIGH);
   digitalWrite(BIN2, LOW);
   analogWrite(PWMB, 80);
-  delay(300);
-  digitalWrite(AIN1, LOW);
-  digitalWrite(AIN2, HIGH);
+  delay(200);
+  digitalWrite(AIN1, HIGH);
+  digitalWrite(AIN2, LOW);
   analogWrite(PWMA, turn_speed);
-  digitalWrite(BIN1, HIGH);
-  digitalWrite(BIN2, LOW);
+  digitalWrite(BIN1, LOW);
+  digitalWrite(BIN2, HIGH);
   analogWrite(PWMB, turn_speed);
-  delay(300);
+  delay(200);
   while(analogRead(A2)<thresh);
 }
 void turn_left()
@@ -240,17 +262,115 @@ void turn_left()
   digitalWrite(BIN1, HIGH);
   digitalWrite(BIN2, LOW);
   analogWrite(PWMB, 80);
-  delay(300);
-  digitalWrite(AIN1, HIGH);
-  digitalWrite(AIN2, LOW);
+  delay(200);
+  digitalWrite(AIN1, LOW);
+  digitalWrite(AIN2, HIGH);
   analogWrite(PWMA, turn_speed);
-  digitalWrite(BIN1, LOW);
-  digitalWrite(BIN2, HIGH);
+  digitalWrite(BIN1, HIGH);
+  digitalWrite(BIN2, LOW);
   analogWrite(PWMB, turn_speed);
-  delay(300);
-  while(analogRead(A2)<thresh);
+  delay(200);
+  while(analogRead(A3)<thresh);
 }
-void Stop()
+void park(char parking_index)//parking_index = A1: a A2: b A3: c B1: d B2: e B3: f
+{
+  transform(parking_index);
+  while(1)
+  {
+    read_sens_park();
+    motor_drive();
+  }
+}
+void transform(char parking_index)//fill in parking_side and intended_slot usage at line 28,29
+{
+switch(parking_index)
+{
+  case 'a':
+  parking_side='A';
+  intended_slot=1;
+  break;
+  case 'b':
+  parking_side='A';
+  intended_slot=2;
+  break;
+  case 'c':
+  parking_side='A';
+  intended_slot=3;
+  break;
+  case 'd':
+  parking_side='B';
+  intended_slot=1;
+  break;
+  case 'e':
+  parking_side='B';
+  intended_slot=2;
+  break;
+  case 'f':
+  parking_side='B';
+  intended_slot=3;
+  break;
+  default:;
+}
+}
+void read_sens_park(int current_slot)
+{
+  change=0;
+  if(line_type=='b')
+   {
+       position = qtr.readLineWhite(sensorValues);
+   }
+   else
+   {
+       position = qtr.readLineBlack(sensorValues);
+   }
+   bool right_path=check_path_right();
+   bool left_path=check_path_left();
+   if(left_path&&right_path)
+   {
+
+      if(sensorValues[2]<200||sensorValues[3]<200)
+      {
+          if(line_type=='b')
+          change=1;
+          line_type='w';
+          
+          //iletişim kur imagea data ver kullanım -> line 20
+      }
+      else
+      {
+        if(current_slot<intended_slot)
+        {
+            current_slot++;
+            delay(100);
+        }
+        else if(current_slot==intended_slot)
+        {
+            if(parking_side=='A')
+            {
+              turn_left();
+            }
+            else
+            {
+              turn_right();
+            }
+        }
+        else 
+        {
+          Stop(10000);
+        }
+      }
+   }
+   
+   else
+   {
+      if(line_type=='w')
+        change=1;
+      line_type='b';
+   }
+
+
+}
+void Stop(int a)
 {
   digitalWrite(AIN1, LOW);
   digitalWrite(AIN2, LOW);
@@ -258,5 +378,5 @@ void Stop()
   digitalWrite(BIN1, LOW);
   digitalWrite(BIN2, LOW);
   analogWrite(PWMB, 0);
-  while(1);
+  delay(a);
 }
