@@ -26,10 +26,10 @@
 float motorSpeedA,motorSpeedB;
 uint16_t position;
 double last_pid=0,pid,exp_pid,lasterror=0,error;
-char line_type='b',image='r';//image= r: right l: left s: straight A1: a A2: b A3: c B1: d B2: e B3: f
+char line_type='b',image='n';//image= r: right l: left s: straight A1: a A2: b A3: c B1: d B2: e B3: f n: none
 QTRSensors qtr;
 bool change=0;//if line changed return 1
-const uint8_t SensorCount = 6;
+const uint8_t SensorCount = 8;
 uint16_t sensorValues[SensorCount];
 char park_side;//A is left B is right
 int intended_slot;//i.e. 1,2,3
@@ -41,7 +41,7 @@ void setup()
   Serial.begin(9600);
   // configure the sensors
   qtr.setTypeAnalog();
-  qtr.setSensorPins((const uint8_t[]){A0, A1, A2, A3, A4, A5}, SensorCount);
+  qtr.setSensorPins((const uint8_t[]){A0, A1, A2, A3, A4, A5,A6,A7}, SensorCount);
   qtr.setEmitterPin(emitter_pin);
 
   pinMode(PWMA,OUTPUT);
@@ -159,13 +159,13 @@ void read_sens()
    if(left_path&&right_path)
    {
 
-      if(sensorValues[2]<200||sensorValues[3]<200)
+      if(sensorValues[3]<200||sensorValues[4]<200)
       {
           change=1;
           line_type='w';
-
           readSign();
-          
+          if(image=='a'||image=='b'||image=='c'||image=='d'||image=='e'||image=='f')
+           park(image);
       }
       else
       {
@@ -175,28 +175,12 @@ void read_sens()
         {
           case 'l':
           turn_left();
+          image='n';
           break;
           case 'r':
           turn_right();
+          image='n';
           break;
-          case 'a':
-          park('a');
-          break;
-          case 'b':
-          park('b');
-          break;
-          case 'c':
-          park('c');
-          break;
-          case 'd':
-          park('d');
-          break;
-          case 'e':
-          park('e');          
-          break;
-          case 'f':
-          park('f');
-          break;        
           default:;
         }
  
@@ -208,14 +192,22 @@ void read_sens()
     if(left_path)
       {
           
-          if(image=='l')
-         turn_left();
+          if(image=='l'||image=='n')
+          {
+           turn_left();
+           if(image=='l')
+           image='n';           
+          }
       }
       else 
       {
          
-         if(image=='r')
+         if(image=='r'||image=='n')
+         {
           turn_right();
+          if(image=='r')
+           image='n';
+         }
       }
       
    }
@@ -230,14 +222,14 @@ void read_sens()
 }
 bool check_path_right()//right 1 else 0
 {
-if((sensorValues[0]>=200&&sensorValues[1]>=200&&sensorValues[2]>=200)||(sensorValues[0]>=200&&sensorValues[1]))
+if((sensorValues[0]>=200&&sensorValues[1]>=200&&sensorValues[2]>=200&&sensorValues[3]>=200)||(sensorValues[0]>=200&&sensorValues[1]>=200&&sensorValues[2]>=200)||(sensorValues[0]>=200&&sensorValues[1]))
 return 1;
 else
 return 0;
 }
 bool check_path_left()//left 1 else 0
 {
-if((sensorValues[5]>=200&&sensorValues[4]>=200&&sensorValues[3]>=200)||(sensorValues[5]>=200&&sensorValues[4]))
+if((sensorValues[7]>=200&&sensorValues[6]>=200&&sensorValues[5]>=200&&sensorValues[4]>=200)||(sensorValues[7]>=200&&sensorValues[6]>=200&&sensorValues[5]>=200)||(sensorValues[7]>=200&&sensorValues[5]))
 return 1;
 else
 return 0;
@@ -251,9 +243,9 @@ if(change==1)
   change=0;
 }
   
-else if (position>=2500)
+else if (position>=3500)
 {
-    error=position-2500; 
+    error=position-3500; 
     pid = kp * error + kd *(error-lasterror); 
     exp_pid=k*pid+(1-k)*last_pid;
     motorSpeedA = BASE + exp_pid;
@@ -261,7 +253,7 @@ else if (position>=2500)
 }
 else
 {
-    error=2500-position;
+    error=3500-position;
     pid = kp * error + kd *(error-lasterror);
     exp_pid=k*pid+(1-k)*last_pid;
     motorSpeedA = BASE - exp_pid;
@@ -390,7 +382,7 @@ void read_sens_park()
    if(left_path&&right_path)
    {
 
-      if(sensorValues[2]<200||sensorValues[3]<200)
+      if(sensorValues[4]<200||sensorValues[3]<200)
       {
           if(line_type=='b')
           change=1;
@@ -419,7 +411,7 @@ void read_sens_park()
         }
         else 
         {
-          Stop(10000);
+          Stop(20000);
         }
       }
    }
