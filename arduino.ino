@@ -163,9 +163,9 @@ void read_sens()
       {
           change=1;
           line_type='w';
-
           readSign();
-          
+          if(image=='a'||image=='b'||image=='c'||image=='d'||image=='e'||image=='f')
+           park(image);
       }
       else
       {
@@ -175,28 +175,12 @@ void read_sens()
         {
           case 'l':
           turn_left();
+          image='s';
           break;
           case 'r':
           turn_right();
+          image='s';
           break;
-          case 'a':
-          park('a');
-          break;
-          case 'b':
-          park('b');
-          break;
-          case 'c':
-          park('c');
-          break;
-          case 'd':
-          park('d');
-          break;
-          case 'e':
-          park('e');          
-          break;
-          case 'f':
-          park('f');
-          break;        
           default:;
         }
  
@@ -209,13 +193,19 @@ void read_sens()
       {
           
           if(image=='l')
-         turn_left();
+          {
+           turn_left();
+           image='s';
+          }
       }
       else 
       {
          
          if(image=='r')
+         {
           turn_right();
+          image='s';
+         }
       }
       
    }
@@ -419,7 +409,7 @@ void read_sens_park()
         }
         else 
         {
-          Stop(10000);
+          Stop(20000);
         }
       }
    }
